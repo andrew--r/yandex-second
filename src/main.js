@@ -1,17 +1,3 @@
-const taskExample = {
- type: 'individual' || 'command',
- name: 'Название задачи',
- description: 'Описание задачи',
-};
-
-const state = {
-	lastStudentId: null,
-	lastMentorId: null,
-	students: [],
-	mentors: [],
-	tasks: [],
-};
-
 export default class School {
 	constructor() {
 		this.state = {
@@ -21,26 +7,29 @@ export default class School {
 	}
 
 	/**
-	 * Добавляет новую задачу
+	 * Creates new task
 	 *
-	 * @param {string} type — тип задачи, 'individual' или 'command'
-	 * @param {string} name — название задачи
-	 * @param {string} description — описание задачи
-	 * @return {number} Идентификатор добавленной задачи.
+	 * @param {Object} config
+	 * @param {string} config.type — task type, 'individual' or 'team'
+	 * @param {string} config.name — task name
+	 * @return {number} Unique task identifier.
 	 */
-	addTask(type, name, description) {
-		if (type !== 'individual' && type !== 'command') {
-			throw new Error('Неверный тип задачи');
+	createTask(type, name) {
+		if (!type || !name) {
+			throw new Error('Both type and name of task must be specified');
 		}
 
-		if (name === undefined) {
-			throw new Error('При создании задачи следует указать название');
+		if (typeof type !== 'string' || typeof name !== 'string') {
+			throw new TypeError('Type and name of task must be a string');
+		}
+
+		if (type !== 'individual' && type !== 'team') {
+			throw new Error('Unknown task type, expected \'individual\' or \'team\'');
 		}
 
 		this.state.tasks.push({
 			type,
 			name,
-			description,
 			id: ++this.state.lastTaskId,
 		});
 
@@ -48,29 +37,41 @@ export default class School {
 	}
 
 	/**
-	 * Удаляет задачу
+	 * Deletes task by its identifier
 	 *
-	 * @param {number} id — идентификатор задачи
-	 * @return {array} Обновлённый массив задач
+	 * @param {number} id — task identifier
+	 * @return {School}
 	 */
-	removeTask(_id) {
-		if (_id === undefined) {
-			throw new Error('Для удаления задачи нужно передать её идентификатор');
+	deleteTask(id) {
+		if (id === undefined) {
+			throw new Error('Task identifier must be specified');
+		}
+
+		if (typeof id !== 'number') {
+			throw new Error('Task identifier must be a number');
 		}
 
 		const {state} = this;
 
-		state.tasks = state.tasks.filter(({id}) => id !== _id);
-		return state.tasks;
+		state.tasks = state.tasks.filter((task) => task.id !== id);
+		return this;
 	}
 
 	/**
-	 * Возвращает задачу с переданным идентификатором
+	 * Returns task with specified identifier
 	 *
-	 * @param {number} id — идентификатор задачи
-	 * @return {object} Задача с нужным идентификатором
+	 * @param {number} id — task identifier
+	 * @return {Object} Task with specified identifier.
 	 */
-	getTask(_id) {
-		return this.state.tasks.filter(({id}) => id === _id)[0];
+	getTask(id) {
+		if (id === undefined) {
+			throw new Error('Task identifier must be specified');
+		}
+
+		if (typeof id !== 'number') {
+			throw new Error('Task identifier must be a number');
+		}
+		
+		return this.state.tasks.filter((task) => task.id === id)[0];
 	}
 }
