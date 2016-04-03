@@ -18,10 +18,14 @@ var School = function () {
 			tasks: [],
 			students: [],
 			teams: [],
+			mentors: [],
 			lastTaskId: 0,
-			lastStudentId: 0
+			lastStudentId: 0,
+			lastMentorId: 0
 		};
 	}
+
+	// TASKS
 
 	/**
   * Creates new task
@@ -146,6 +150,140 @@ var School = function () {
 			return this;
 		}
 
+		// STUDENTS
+
+		/**
+   * Adds new student
+   *
+   * @param {string} fullname — student full name
+   * @return {number} unique student id
+   */
+
+	}, {
+		key: 'addStudent',
+		value: function addStudent(fullname) {
+			var state = this.state;
+
+
+			state.students.push({
+				fullname: fullname,
+				id: ++state.lastStudentId,
+				tasks: [],
+				team: null
+			});
+
+			return state.lastStudentId;
+		}
+
+		/**
+   * Returns student with specified id if student exists
+   *
+   * @param {number} id — unique student id
+   * @return {Object} student or undefined
+   */
+
+	}, {
+		key: 'getStudent',
+		value: function getStudent(id) {
+			return this.state.students.filter(function (student) {
+				return student.id === id;
+			})[0];
+		}
+
+		/**
+   * Removes student
+   *
+   * @param {number} id — unique student id
+   * @return {School}
+   */
+
+	}, {
+		key: 'removeStudent',
+		value: function removeStudent(id) {
+			var _this2 = this;
+
+			this.state.students = this.state.students.filter(function (student) {
+				return student.id !== id;
+			});
+
+			var teamsToDelete = [];
+
+			this.state.teams.forEach(function (team) {
+				team.members = team.members.filter(function (member) {
+					return member !== id;
+				});
+				if (team.members.length < 2) teamsToDelete.push(team.name);
+			});
+
+			teamsToDelete.forEach(function (teamName) {
+				_this2.getTeam(teamName).members.forEach(function (id) {
+					return _this2.getStudent(id).team = null;
+				});
+			});
+
+			this.state.teams = this.state.teams.filter(function (team) {
+				return ! ~teamsToDelete.indexOf(team.name);
+			});
+
+			return this;
+		}
+
+		// MENTORS
+
+		/**
+   * Adds new mentor
+   *
+   * @param {string} fullname — mentor full name
+   * @return {number} unique mentor id
+   */
+
+	}, {
+		key: 'addMentor',
+		value: function addMentor(fullname) {
+			var state = this.state;
+
+
+			state.mentors.push({
+				fullname: fullname,
+				id: ++state.lastMentorId
+			});
+
+			return state.lastMentorId;
+		}
+
+		/**
+   * Returns student with specified id if student exists
+   *
+   * @param {number} id — unique student id
+   * @return {Object} student or undefined
+   */
+
+	}, {
+		key: 'getMentor',
+		value: function getMentor(id) {
+			return this.state.mentors.filter(function (mentor) {
+				return mentor.id === id;
+			})[0];
+		}
+
+		/**
+   * Removes mentor
+   *
+   * @param {number} id — unique mentor id
+   * @return {School}
+   */
+
+	}, {
+		key: 'removeMentor',
+		value: function removeMentor(id) {
+			this.state.mentors = this.state.mentors.filter(function (mentor) {
+				return mentor.id !== id;
+			});
+			return this;
+		}
+
+		// TEAMS
+
 		/**
    * Creates new students team
    *
@@ -157,14 +295,27 @@ var School = function () {
 	}, {
 		key: 'createTeam',
 		value: function createTeam(name, members) {
-			if (this.state.teams.filter(function (team) {
+			var _this3 = this;
+
+			if (contains(this.state.teams, function (team) {
 				return team.name === name;
-			}).length) return;
+			})) return;
 			if (!Array.isArray(members)) return;
+
+			var freeMembers = members.filter(function (id) {
+				return !_this3.getStudent(id).team;
+			}).map(function (id) {
+				_this3.getStudent(id).team = name;
+				return id;
+			});
+
+			if (freeMembers.length < 2) {
+				throw new Error('Cannot create team with members who are already assigned to another team');
+			}
 
 			this.state.teams.push({
 				name: name,
-				members: members,
+				members: freeMembers,
 				tasks: []
 			});
 
@@ -185,42 +336,24 @@ var School = function () {
 				return team.name === name;
 			})[0];
 		}
-
-		/**
-   * Creates new student
-   *
-   * @param {string} fullname — student full name
-   * @return {number} student id
-   */
-
-	}, {
-		key: 'createStudent',
-		value: function createStudent(fullname) {
-			if (!fullname || typeof fullname !== 'string' || fullname.trim() === '') {
-				throw new Error('Student fullname must be specified');
-			}
-
-			var state = this.state;
-
-
-			state.students.push({
-				fullname: fullname,
-				id: ++state.lastStudentId,
-				tasks: []
-			});
-
-			return state.lastStudentId;
-		}
-	}, {
-		key: 'getStudent',
-		value: function getStudent(id) {
-			return this.state.students.filter(function (student) {
-				return student.id === id;
-			})[0];
-		}
 	}]);
 
 	return School;
 }();
 
+// HELPERS
+
+/**
+ * Checks if array contains element that matches predicate
+ *
+ * @param {Array} array
+ * @param {Function} predicate
+ * @return {Boolean}
+ */
+
+
 exports.default = School;
+function contains(array, predicate) {
+	var result = array.filter(predicate);
+	return Boolean(result.length);
+}

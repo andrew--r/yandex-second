@@ -4,10 +4,15 @@ export default class School {
 			tasks: [],
 			students: [],
 			teams: [],
+			mentors: [],
 			lastTaskId: 0,
 			lastStudentId: 0,
+			lastMentorId: 0,
 		};
 	}
+
+
+	// TASKS
 
 	/**
 	 * Creates new task
@@ -110,6 +115,108 @@ export default class School {
 	}
 
 
+	// STUDENTS
+
+	/**
+	 * Adds new student
+	 *
+	 * @param {string} fullname — student full name
+	 * @return {number} unique student id
+	 */
+	addStudent(fullname) {
+		const {state} = this;
+
+		state.students.push({
+			fullname,
+			id: ++state.lastStudentId,
+			tasks: [],
+			team: null,
+		});
+
+		return state.lastStudentId;
+	}
+
+	/**
+	 * Returns student with specified id if student exists
+	 *
+	 * @param {number} id — unique student id
+	 * @return {Object} student or undefined
+	 */
+	getStudent(id) {
+		return this.state.students.filter((student) => student.id === id)[0];
+	}
+
+	/**
+	 * Removes student
+	 *
+	 * @param {number} id — unique student id
+	 * @return {School}
+	 */
+	removeStudent(id) {
+		this.state.students = this.state.students.filter((student) => student.id !== id);
+
+		const teamsToDelete = [];
+
+		this.state.teams.forEach((team) => {
+			team.members = team.members.filter((member) => member !== id);
+			if (team.members.length < 2) teamsToDelete.push(team.name);
+		});
+
+		teamsToDelete.forEach((teamName) => {
+			this
+				.getTeam(teamName)
+				.members
+				.forEach((id) => this.getStudent(id).team = null);
+		});
+
+		this.state.teams = this.state.teams.filter((team) => !~teamsToDelete.indexOf(team.name));
+
+		return this;
+	}
+
+	// MENTORS
+
+	/**
+	 * Adds new mentor
+	 *
+	 * @param {string} fullname — mentor full name
+	 * @return {number} unique mentor id
+	 */
+	addMentor(fullname) {
+		const {state} = this;
+
+		state.mentors.push({
+			fullname,
+			id: ++state.lastMentorId,
+		});
+
+		return state.lastMentorId;
+	}
+
+	/**
+	 * Returns student with specified id if student exists
+	 *
+	 * @param {number} id — unique student id
+	 * @return {Object} student or undefined
+	 */
+	getMentor(id) {
+		return this.state.mentors.filter((mentor) => mentor.id === id)[0];
+	}
+
+	/**
+	 * Removes mentor
+	 *
+	 * @param {number} id — unique mentor id
+	 * @return {School}
+	 */
+	removeMentor(id) {
+		this.state.mentors = this.state.mentors.filter((mentor) => mentor.id !== id);
+		return this;
+	}
+
+
+	// TEAMS
+
 	/**
 	 * Creates new students team
 	 *
@@ -118,12 +225,23 @@ export default class School {
 	 * @return {School}
 	 */
 	createTeam(name, members) {
-		if (this.state.teams.filter((team) => team.name === name).length) return;
+		if (contains(this.state.teams, (team) => team.name === name)) return;
 		if (!Array.isArray(members)) return;
+
+		const freeMembers = members
+			.filter((id) => !this.getStudent(id).team)
+			.map((id) => {
+				this.getStudent(id).team = name;
+				return id;
+			});
+
+		if (freeMembers.length < 2) {
+			throw new Error('Cannot create team with members who are already assigned to another team');
+		}
 
 		this.state.teams.push({
 			name,
-			members,
+			members: freeMembers,
 			tasks: [],
 		});
 
@@ -139,31 +257,19 @@ export default class School {
 	getTeam(name) {
 		return this.state.teams.filter((team) => team.name === name)[0];
 	}
+}
 
 
-	/**
-	 * Creates new student
-	 *
-	 * @param {string} fullname — student full name
-	 * @return {number} student id
-	 */
-	createStudent(fullname) {
-		if (!fullname || typeof fullname !=='string' || fullname.trim() === '') {
-			throw new Error('Student fullname must be specified');
-		}
+// HELPERS
 
-		const {state} = this;
-
-		state.students.push({
-			fullname,
-			id: ++state.lastStudentId,
-			tasks: [],
-		});
-
-		return state.lastStudentId;
-	}
-
-	getStudent(id) {
-		return this.state.students.filter((student) => student.id === id)[0];
-	}
+/**
+ * Checks if array contains element that matches predicate
+ *
+ * @param {Array} array
+ * @param {Function} predicate
+ * @return {Boolean}
+ */
+function contains(array, predicate) {
+	const result = array.filter(predicate);
+	return Boolean(result.length);
 }

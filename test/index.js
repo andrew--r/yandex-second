@@ -1,5 +1,7 @@
 var test = require('tape');
+
 var School = require('../dist/main').default;
+
 
 test('tasks', function (t) {
 	var Shri = new School();
@@ -114,74 +116,145 @@ test('tasks', function (t) {
 });
 
 
-// test('teams', function (t) {
-// 	var Shri = new School();
-
-// 	t.throws(
-// 		function () {
-// 			Shri.createTeam();
-// 		},
-// 		/Team name must be specified/,
-// 		'Нельзя создать команду без названия'
-// 	);
-
-// 	t.throws(
-// 		function () {
-// 			Shri.createTeam('');
-// 		},
-// 		/Team name must be specified/,
-// 		'Нельзя создать команду без названия'
-// 	);
-
-// 	t.throws(
-// 		function () {
-// 			Shri.createTeam('       ');
-// 		},
-// 		/Team name must be specified/,
-// 		'Нельзя создать команду без названия'
-// 	);
-
-// 	t.throws(
-// 		function () {
-// 			Shri.createTeam(1234);
-// 		},
-// 		/Team name must be a string/,
-// 		'Название команды должно быть строкой'
-// 	);
-
-// 	t.throws(
-// 		function () {
-// 			Shri.createTeam('Dreamteam');
-// 		},
-// 		/Team members must be specified/,
-// 		'Нельзя создать команду без участников'
-// 	);
-
-// 	t.throws(
-// 		function () {
-// 			Shri.createTeam('Dreamteam', [0, 1]);
-// 		},
-// 		/Cannot create team without members/,
-// 		'Нельзя создать команду без участников'
-// 	);
-
-// 	t.end();
-// });
-
-test('usecase1', function(t) {
+test('add and remove students', function (t) {
 	var Shri = new School();
 
-	t.equals(Shri.createStudent('Андрей Романов'), 1);
-	t.equals(Shri.createStudent('Алексей Иванов'), 2);
-	t.equals(Shri.createStudent('Олег Петров'), 3);
-	t.equals(Shri.createStudent('Мария Кузницына'), 4);
+	var firstStudent = {
+		fullname: 'Андрей Романов',
+		id: 1,
+		tasks: [],
+		team: null,
+	};
 
-	t.ok(Shri.createTeam('Dreamteam', [1, 2, 4]));
+	var secondStudent = {
+		fullname: 'Мария Кузницына',
+		id: 2,
+		tasks: [],
+		team: null,
+	};
 
-	t.equals(Shri.createTask('individual', 'Познакомиться с командой'), 1);
-	t.ok(Shri.assignTask(1, Shri.getTeam('Dreamteam').members));
+	t.equals(Shri.addStudent('Андрей Романов'), 1);
+	t.equals(Shri.addStudent('Мария Кузницына'), 2);
 
-	console.log('Shri.state.students[0]', Shri.state.students[0]);
+	t.deepEqual(Shri.getStudent(1), firstStudent);
+	t.deepEqual(Shri.getStudent(2), secondStudent);
+
+	t.equals(Shri.state.students.length, 2);
+
+	t.ok(Shri.removeStudent(1));
+
+	t.equals(Shri.state.students.length, 1);
+	t.equals(Shri.getStudent(1), undefined);
+	t.deepEqual(Shri.getStudent(2), secondStudent);
+
+	t.end();
+});
+
+
+test('create and delete teams', function (t) {
+	var Shri = new School();
+
+	t.equals(Shri.addStudent('Андрей Романов'), 1);
+	t.equals(Shri.addStudent('Мария Кузницына'), 2);
+	t.equals(Shri.addStudent('Алексей Иванов'), 3);
+	t.equals(Shri.addStudent('Олег Петров'), 4);
+	t.equals(Shri.addStudent('Анна Василюк'), 5);
+	t.equals(Shri.addStudent('Егор Китцелюк'), 6);
+	t.equals(Shri.state.students.length, 6);
+
+	var firstTeam = {
+		name: 'First',
+		members: [1, 2],
+		tasks: [],
+	};
+
+	var secondTeam = {
+		name: 'Second',
+		members: [3, 4, 5],
+		tasks: [],
+	};
+
+	t.ok(Shri.createTeam('First', [1, 2]));
+	t.notOk(Shri.createTeam('First', [1, 2]));
+	t.equals(Shri.state.teams.length, 1);
+	t.deepEqual(Shri.getTeam('First'), firstTeam);
+	t.equals(Shri.getStudent(1).team, 'First');
+	t.equals(Shri.getStudent(2).team, 'First');
+
+	t.ok(Shri.createTeam('Second', [1, 2, 3, 4, 5]));
+	t.equals(Shri.state.teams.length, 2);
+	t.deepEqual(Shri.getTeam('Second'), secondTeam);
+	t.equals(Shri.getStudent(1).team, 'First');
+	t.equals(Shri.getStudent(2).team, 'First');
+	t.equals(Shri.getStudent(3).team, 'Second');
+	t.equals(Shri.getStudent(4).team, 'Second');
+	t.equals(Shri.getStudent(5).team, 'Second');
+
+	t.throws(
+		function() {
+			Shri.createTeam('Thrid', [1, 2, 6]);
+		},
+		/Cannot create team with members who are already assigned to another team/
+	);
+
+	t.end();
+});
+
+
+test('remove students and autoremove teams', function (t) {
+	var Shri = new School();
+
+	t.equals(Shri.addStudent('Андрей Романов'), 1);
+	t.equals(Shri.addStudent('Мария Кузницына'), 2);
+	t.equals(Shri.addStudent('Алексей Иванов'), 3);
+	t.equals(Shri.state.students.length, 3);
+
+	var firstTeam = {
+		name: 'First',
+		members: [1, 2],
+		tasks: [],
+	};
+
+	t.ok(Shri.createTeam('First', [1, 2]));
+	t.equals(Shri.state.teams.length, 1);
+	t.deepEqual(Shri.getTeam('First'), firstTeam);
+	t.equals(Shri.getStudent(2).team, 'First');
+
+	var firstStudent = {
+		fullname: 'Андрей Романов',
+		id: 1,
+		tasks: [],
+		team: 'First',
+	};
+
+	t.deepEqual(Shri.getStudent(1), firstStudent);
+
+	t.ok(Shri.removeStudent(1));
+	t.equals(Shri.getStudent(1), undefined);
+	t.equals(Shri.getTeam('First'), undefined);
+	t.equals(Shri.getStudent(2).team, null);
+
+	t.end();
+});
+
+
+test('mentors', function (t) {
+	var Shri = new School();
+
+	t.equals(Shri.addMentor('Андрей Ситник'), 1);
+	t.equals(Shri.addMentor('Эдди Османи'), 2);
+	t.equals(Shri.state.mentors.length, 2);
+
+	var firstMentor = {
+		fullname: 'Андрей Ситник',
+		id: 1,
+	};
+
+	t.deepEqual(Shri.getMentor(1), firstMentor);
+
+	t.ok(Shri.removeMentor(1));
+	t.equals(Shri.state.mentors.length, 1);
+	t.equals(Shri.getMentor(1), undefined);
 
 	t.end();
 });
