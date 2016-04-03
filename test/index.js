@@ -3,7 +3,7 @@ var test = require('tape');
 var School = require('../dist/main').default;
 
 
-test('tasks', function (t) {
+test('create, delete and get tasks', function (t) {
 	var Shri = new School();
 
 	t.throws(
@@ -68,6 +68,14 @@ test('tasks', function (t) {
 		'Задача с корректными типом и названием успешно добавляется'
 	);
 
+	var firstTask = {
+		type: 'individual',
+		name: 'Познакомиться с преподавателями',
+		id: 1,
+	};
+
+	t.deepEqual(Shri.getTask(1), firstTask);
+
 	t.equal(
 		Shri.createTask('individual', 'Посетить два занятия'),
 		2,
@@ -116,7 +124,7 @@ test('tasks', function (t) {
 });
 
 
-test('add and remove students', function (t) {
+test('create and delete students', function (t) {
 	var Shri = new School();
 
 	var firstStudent = {
@@ -133,15 +141,15 @@ test('add and remove students', function (t) {
 		team: null,
 	};
 
-	t.equals(Shri.addStudent('Андрей Романов'), 1);
-	t.equals(Shri.addStudent('Мария Кузницына'), 2);
+	t.equals(Shri.createStudent('Андрей Романов'), 1);
+	t.equals(Shri.createStudent('Мария Кузницына'), 2);
 
 	t.deepEqual(Shri.getStudent(1), firstStudent);
 	t.deepEqual(Shri.getStudent(2), secondStudent);
 
 	t.equals(Shri.state.students.length, 2);
 
-	t.ok(Shri.removeStudent(1));
+	t.ok(Shri.deleteStudent(1));
 
 	t.equals(Shri.state.students.length, 1);
 	t.equals(Shri.getStudent(1), undefined);
@@ -154,12 +162,12 @@ test('add and remove students', function (t) {
 test('create and delete teams', function (t) {
 	var Shri = new School();
 
-	t.equals(Shri.addStudent('Андрей Романов'), 1);
-	t.equals(Shri.addStudent('Мария Кузницына'), 2);
-	t.equals(Shri.addStudent('Алексей Иванов'), 3);
-	t.equals(Shri.addStudent('Олег Петров'), 4);
-	t.equals(Shri.addStudent('Анна Василюк'), 5);
-	t.equals(Shri.addStudent('Егор Китцелюк'), 6);
+	t.equals(Shri.createStudent('Андрей Романов'), 1);
+	t.equals(Shri.createStudent('Мария Кузницына'), 2);
+	t.equals(Shri.createStudent('Алексей Иванов'), 3);
+	t.equals(Shri.createStudent('Олег Петров'), 4);
+	t.equals(Shri.createStudent('Анна Василюк'), 5);
+	t.equals(Shri.createStudent('Егор Китцелюк'), 6);
 	t.equals(Shri.state.students.length, 6);
 
 	var firstTeam = {
@@ -191,22 +199,31 @@ test('create and delete teams', function (t) {
 	t.equals(Shri.getStudent(5).team, 'Second');
 
 	t.throws(
-		function() {
+		function () {
 			Shri.createTeam('Thrid', [1, 2, 6]);
 		},
 		/Cannot create team with members who are already assigned to another team/
 	);
 
+	t.ok(Shri.deleteTeam('Second'));
+	t.equals(Shri.state.teams.length, 1);
+	t.deepEqual(Shri.getTeam('First'), firstTeam);
+	t.equals(Shri.getStudent(1).team, 'First');
+	t.equals(Shri.getStudent(2).team, 'First');
+	t.equals(Shri.getStudent(3).team, null);
+	t.equals(Shri.getStudent(4).team, null);
+	t.equals(Shri.getStudent(5).team, null);
+
 	t.end();
 });
 
 
-test('remove students and autoremove teams', function (t) {
+test('delete students and autodelete teams', function (t) {
 	var Shri = new School();
 
-	t.equals(Shri.addStudent('Андрей Романов'), 1);
-	t.equals(Shri.addStudent('Мария Кузницына'), 2);
-	t.equals(Shri.addStudent('Алексей Иванов'), 3);
+	t.equals(Shri.createStudent('Андрей Романов'), 1);
+	t.equals(Shri.createStudent('Мария Кузницына'), 2);
+	t.equals(Shri.createStudent('Алексей Иванов'), 3);
 	t.equals(Shri.state.students.length, 3);
 
 	var firstTeam = {
@@ -229,7 +246,7 @@ test('remove students and autoremove teams', function (t) {
 
 	t.deepEqual(Shri.getStudent(1), firstStudent);
 
-	t.ok(Shri.removeStudent(1));
+	t.ok(Shri.deleteStudent(1));
 	t.equals(Shri.getStudent(1), undefined);
 	t.equals(Shri.getTeam('First'), undefined);
 	t.equals(Shri.getStudent(2).team, null);
@@ -238,11 +255,11 @@ test('remove students and autoremove teams', function (t) {
 });
 
 
-test('mentors', function (t) {
+test('create, delete and get mentors', function (t) {
 	var Shri = new School();
 
-	t.equals(Shri.addMentor('Андрей Ситник'), 1);
-	t.equals(Shri.addMentor('Эдди Османи'), 2);
+	t.equals(Shri.createMentor('Андрей Ситник'), 1);
+	t.equals(Shri.createMentor('Эдди Османи'), 2);
 	t.equals(Shri.state.mentors.length, 2);
 
 	var firstMentor = {
@@ -252,9 +269,167 @@ test('mentors', function (t) {
 
 	t.deepEqual(Shri.getMentor(1), firstMentor);
 
-	t.ok(Shri.removeMentor(1));
+	t.ok(Shri.deleteMentor(1));
 	t.equals(Shri.state.mentors.length, 1);
 	t.equals(Shri.getMentor(1), undefined);
+
+	t.end();
+});
+
+
+test('assign, complete and delete tasks', function (t) {
+	var Shri = new School();
+
+	t.equals(Shri.createStudent('Андрей Романов'), 1);
+	t.equals(Shri.createStudent('Мария Кузницына'), 2);
+	t.equals(Shri.createStudent('Алексей Иванов'), 3);
+	t.equals(Shri.createStudent('Олег Петров'), 4);
+	t.equals(Shri.createStudent('Анна Василюк'), 5);
+	t.equals(Shri.createStudent('Егор Китцелюк'), 6);
+
+	t.ok(Shri.createTeam('First', [1, 2]));
+	t.ok(Shri.createTeam('Second', [3, 4, 5, 6]));
+
+	t.equals(Shri.createTask('individual', 'Познакомиться с участниками ШРИ'), 1);
+	t.equals(Shri.createTask('team', 'Познакомиться с другими командами'), 2);
+	t.equals(Shri.createTask('team', 'Представить идею проекта'), 3);
+
+	t.ok(Shri.assignTask(1, [1, 2, 3, 4, 5, 6]));
+	t.ok(Shri.assignTask(2, ['First', 'Second']));
+	t.ok(Shri.assignTask(3, ['First']));
+
+	var firstTask = {
+		id: 1,
+		completed: false,
+		score: null,
+	};
+
+	var secondTask = {
+		id: 2,
+		completed: false,
+		score: null,
+	};
+
+	var thirdTask = {
+		id: 3,
+		completed: false,
+		score: null,
+	};
+
+	t.deepEqual(Shri.getStudent(1).tasks[0], firstTask);
+	t.deepEqual(Shri.getStudent(2).tasks[0], firstTask);
+	t.deepEqual(Shri.getStudent(3).tasks[0], firstTask);
+	t.deepEqual(Shri.getStudent(4).tasks[0], firstTask);
+	t.deepEqual(Shri.getStudent(5).tasks[0], firstTask);
+	t.deepEqual(Shri.getStudent(6).tasks[0], firstTask);
+
+	t.deepEqual(Shri.getTeam('First').tasks[0], secondTask);
+	t.deepEqual(Shri.getTeam('Second').tasks[0], secondTask);
+
+	t.deepEqual(Shri.getTeam('First').tasks[1], thirdTask);
+
+	t.ok(Shri.completeTask(1, 1, 4));
+	t.ok(Shri.completeTask(2, 'First', 3));
+
+	var firstCompletedTask = {
+		id: 1,
+		completed: true,
+		score: 4,
+	};
+
+	var secondCompletedTask = {
+		id: 2,
+		completed: true,
+		score: 3,
+	};
+
+	t.deepEqual(Shri.getStudent(1).tasks[0], firstCompletedTask);
+	t.deepEqual(Shri.getTeam('First').tasks[0], secondCompletedTask);
+
+	t.ok(Shri.completeTask(2, 'First', 5));
+
+	t.deepEqual(Shri.getTeam('First').tasks[0], secondCompletedTask, 'Нельзя менять оценку в уже выполненных задачах');
+
+	t.ok(Shri.deleteTask(3));
+	t.equals(Shri.getTask(3), undefined);
+	t.equals(Shri.getTeam('First').tasks[1], undefined);
+
+	t.throws(
+		function () {
+			Shri.completeTask();
+		},
+		/taskId, executorId and score are required to complete task/
+	);
+
+	t.throws(
+		function () {
+			Shri.completeTask(1);
+		},
+		/taskId, executorId and score are required to complete task/
+	);
+
+	t.throws(
+		function () {
+			Shri.completeTask(1, 1);
+		},
+		/taskId, executorId and score are required to complete task/
+	);
+
+	t.throws(
+		function () {
+			Shri.completeTask('1', 1, 5);
+		},
+		/taskId and score must be specified as a number/
+	);
+
+	t.throws(
+		function () {
+			Shri.completeTask(1, 1, '5');
+		},
+		/taskId and score must be specified as a number/
+	);
+
+	t.throws(
+		function () {
+			Shri.completeTask(1, 1, 0);
+		},
+		/score must be in range from 1 to 5/
+	);
+
+	t.throws(
+		function () {
+			Shri.completeTask(1, 1, 6);
+		},
+		/score must be in range from 1 to 5/
+	);
+
+	t.throws(
+		function () {
+			Shri.completeTask(40, 1, 5);
+		},
+		/Unknown task/
+	);
+
+	t.throws(
+		function () {
+			Shri.completeTask(40, 1, 5);
+		},
+		/Unknown task/
+	);
+
+	t.throws(
+		function () {
+			Shri.completeTask(1, 'Team name', 5);
+		},
+		/executorId for task with type \'individual\' must be a number/
+	);
+
+	t.throws(
+		function () {
+			Shri.completeTask(2, 3, 5);
+		},
+		/executorId for task with type \'team\' must be a string/
+	);
 
 	t.end();
 });

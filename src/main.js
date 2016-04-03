@@ -17,9 +17,8 @@ export default class School {
 	/**
 	 * Creates new task
 	 *
-	 * @param {Object} config
-	 * @param {string} config.type — task type, 'individual' or 'team'
-	 * @param {string} config.name — task name
+	 * @param {string} type — task type, 'individual' or 'team'
+	 * @param {string} name — task name
 	 * @return {number} Unique task identifier.
 	 */
 	createTask(type, name) {
@@ -61,9 +60,14 @@ export default class School {
 			throw new Error('Task identifier must be a number');
 		}
 
-		const {state} = this;
+		const task = this.getTask(id);
+		if (!task) return this;
 
-		state.tasks = state.tasks.filter((task) => task.id !== id);
+		this.state.tasks = this.state.tasks.filter((task) => task.id !== id);
+		this.state[task.type === 'team' ? 'teams' : 'students'].forEach((executor) => {
+			executor.tasks = executor.tasks.filter((task) => task.id !== id);
+		});
+
 		return this;
 	}
 
@@ -114,16 +118,67 @@ export default class School {
 		return this;
 	}
 
+	/**
+	 * Completes task
+	 *
+	 * @param {number} taskId — task identifier
+	 * @param {(number|string)} executorId — student identifier or team name
+	 * @param {number} score
+	 * @return {School}
+	 */
+	completeTask(taskId, executorId, score) {
+		if (taskId === undefined || executorId === undefined || score === undefined) {
+			throw new Error('taskId, executorId and score are required to complete task');
+		}
+
+		if (typeof taskId !== 'number' || typeof score !== 'number') {
+			throw new Error('taskId and score must be specified as a number');
+		}
+
+		if (score < 1 || score > 5) {
+			throw new Error('score must be in range from 1 to 5');
+		}
+
+		const task = this.getTask(taskId);
+
+		if (!task) {
+			throw new Error('Unknown task');
+		}
+
+		if (task.type === 'team' && typeof executorId !== 'string') {
+			throw new Error('executorId for task with type \'team\' must be a string');
+		}
+
+		if (task.type === 'individual' && typeof executorId !== 'number') {
+			throw new Error('executorId for task with type \'individual\' must be a number');
+		}
+
+		const getMethodName = `get${task.type === 'team' ? 'Team' : 'Student'}`;
+
+		this[getMethodName](executorId).tasks = this[getMethodName](executorId)
+			.tasks
+			.map((task) => {
+				if (task.id === taskId && !task.completed) {
+					task.completed = true;
+					task.score = score;
+				}
+
+				return task;
+			});
+
+		return this;
+	}
+
 
 	// STUDENTS
 
 	/**
-	 * Adds new student
+	 * Creates new student
 	 *
 	 * @param {string} fullname — student full name
 	 * @return {number} unique student id
 	 */
-	addStudent(fullname) {
+	createStudent(fullname) {
 		const {state} = this;
 
 		state.students.push({
@@ -147,12 +202,12 @@ export default class School {
 	}
 
 	/**
-	 * Removes student
+	 * Deletes student
 	 *
 	 * @param {number} id — unique student id
 	 * @return {School}
 	 */
-	removeStudent(id) {
+	deleteStudent(id) {
 		this.state.students = this.state.students.filter((student) => student.id !== id);
 
 		const teamsToDelete = [];
@@ -177,12 +232,12 @@ export default class School {
 	// MENTORS
 
 	/**
-	 * Adds new mentor
+	 * Creates new mentor
 	 *
 	 * @param {string} fullname — mentor full name
 	 * @return {number} unique mentor id
 	 */
-	addMentor(fullname) {
+	createMentor(fullname) {
 		const {state} = this;
 
 		state.mentors.push({
@@ -204,12 +259,12 @@ export default class School {
 	}
 
 	/**
-	 * Removes mentor
+	 * Deletes mentor
 	 *
 	 * @param {number} id — unique mentor id
 	 * @return {School}
 	 */
-	removeMentor(id) {
+	deleteMentor(id) {
 		this.state.mentors = this.state.mentors.filter((mentor) => mentor.id !== id);
 		return this;
 	}
@@ -256,6 +311,25 @@ export default class School {
 	 */
 	getTeam(name) {
 		return this.state.teams.filter((team) => team.name === name)[0];
+	}
+
+	/**
+	 * Deletes team with specified name
+	 *
+	 * @param {string} name — team name
+	 * @return {School}
+	 */
+	deleteTeam(name) {
+		if (!name || name.trim() === '') return;
+
+		const teamToRemove = this.getTeam(name);
+
+		teamToRemove.members.forEach((id) => {
+			this.getStudent(id).team = null;
+		});
+
+		this.state.teams = this.state.teams.filter((team) => team.name !== name);
+		return this;
 	}
 }
 
