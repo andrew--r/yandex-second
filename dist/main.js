@@ -4,6 +4,8 @@ Object.defineProperty(exports, "__esModule", {
 	value: true
 });
 
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -14,7 +16,10 @@ var School = function () {
 
 		this.state = {
 			tasks: [],
-			lastTaskId: 0
+			students: [],
+			teams: [],
+			lastTaskId: 0,
+			lastStudentId: 0
 		};
 	}
 
@@ -43,13 +48,16 @@ var School = function () {
 				throw new Error('Unknown task type, expected \'individual\' or \'team\'');
 			}
 
-			this.state.tasks.push({
+			var state = this.state;
+
+
+			state.tasks.push({
 				type: type,
 				name: name,
-				id: ++this.state.lastTaskId
+				id: ++state.lastTaskId
 			});
 
-			return this.state.lastTaskId;
+			return state.lastTaskId;
 		}
 
 		/**
@@ -99,6 +107,115 @@ var School = function () {
 
 			return this.state.tasks.filter(function (task) {
 				return task.id === id;
+			})[0];
+		}
+
+		/**
+   * Assigns task to teams or students
+   *
+   * @param {number} id — task identifier
+   * @param {(number[]|string[])} executors — students or teams
+   * @return {School}
+   */
+
+	}, {
+		key: 'assignTask',
+		value: function assignTask(id, executors) {
+			var _this = this;
+
+			var taskType = this.getTask(id).type;
+
+			executors
+			// оставляем только исполнителей, подходящих к типу задачи
+			.filter(function (executorId) {
+				var filterBy = taskType === 'team' ? 'string' : 'number';
+				return (typeof executorId === 'undefined' ? 'undefined' : _typeof(executorId)) === filterBy;
+			}).map(function (executorId) {
+				return _this[taskType === 'team' ? 'getTeam' : 'getStudent'](executorId);
+			}).forEach(function (executor) {
+				if (executor.tasks.filter(function (task) {
+					return task.id == id;
+				}).length) return;
+				executor.tasks.push({
+					id: id,
+					completed: false,
+					score: null
+				});
+			});
+
+			return this;
+		}
+
+		/**
+   * Creates new students team
+   *
+   * @param {string} name — unique team name
+   * @param {number[]} members — team members
+   * @return {School}
+   */
+
+	}, {
+		key: 'createTeam',
+		value: function createTeam(name, members) {
+			if (this.state.teams.filter(function (team) {
+				return team.name === name;
+			}).length) return;
+			if (!Array.isArray(members)) return;
+
+			this.state.teams.push({
+				name: name,
+				members: members,
+				tasks: []
+			});
+
+			return this;
+		}
+
+		/**
+   * Returns team with specified name
+   *
+   * @param {string} name — team name
+   * @return {Object} Team with specified name.
+   */
+
+	}, {
+		key: 'getTeam',
+		value: function getTeam(name) {
+			return this.state.teams.filter(function (team) {
+				return team.name === name;
+			})[0];
+		}
+
+		/**
+   * Creates new student
+   *
+   * @param {string} fullname — student full name
+   * @return {number} student id
+   */
+
+	}, {
+		key: 'createStudent',
+		value: function createStudent(fullname) {
+			if (!fullname || typeof fullname !== 'string' || fullname.trim() === '') {
+				throw new Error('Student fullname must be specified');
+			}
+
+			var state = this.state;
+
+
+			state.students.push({
+				fullname: fullname,
+				id: ++state.lastStudentId,
+				tasks: []
+			});
+
+			return state.lastStudentId;
+		}
+	}, {
+		key: 'getStudent',
+		value: function getStudent(id) {
+			return this.state.students.filter(function (student) {
+				return student.id === id;
 			})[0];
 		}
 	}]);

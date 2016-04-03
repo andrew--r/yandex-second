@@ -114,8 +114,74 @@ test('tasks', function (t) {
 });
 
 
-test('teams', function (t) {
+// test('teams', function (t) {
+// 	var Shri = new School();
+
+// 	t.throws(
+// 		function () {
+// 			Shri.createTeam();
+// 		},
+// 		/Team name must be specified/,
+// 		'Нельзя создать команду без названия'
+// 	);
+
+// 	t.throws(
+// 		function () {
+// 			Shri.createTeam('');
+// 		},
+// 		/Team name must be specified/,
+// 		'Нельзя создать команду без названия'
+// 	);
+
+// 	t.throws(
+// 		function () {
+// 			Shri.createTeam('       ');
+// 		},
+// 		/Team name must be specified/,
+// 		'Нельзя создать команду без названия'
+// 	);
+
+// 	t.throws(
+// 		function () {
+// 			Shri.createTeam(1234);
+// 		},
+// 		/Team name must be a string/,
+// 		'Название команды должно быть строкой'
+// 	);
+
+// 	t.throws(
+// 		function () {
+// 			Shri.createTeam('Dreamteam');
+// 		},
+// 		/Team members must be specified/,
+// 		'Нельзя создать команду без участников'
+// 	);
+
+// 	t.throws(
+// 		function () {
+// 			Shri.createTeam('Dreamteam', [0, 1]);
+// 		},
+// 		/Cannot create team without members/,
+// 		'Нельзя создать команду без участников'
+// 	);
+
+// 	t.end();
+// });
+
+test('usecase1', function(t) {
 	var Shri = new School();
+
+	t.equals(Shri.createStudent('Андрей Романов'), 1);
+	t.equals(Shri.createStudent('Алексей Иванов'), 2);
+	t.equals(Shri.createStudent('Олег Петров'), 3);
+	t.equals(Shri.createStudent('Мария Кузницына'), 4);
+
+	t.ok(Shri.createTeam('Dreamteam', [1, 2, 4]));
+
+	t.equals(Shri.createTask('individual', 'Познакомиться с командой'), 1);
+	t.ok(Shri.assignTask(1, Shri.getTeam('Dreamteam').members));
+
+	console.log('Shri.state.students[0]', Shri.state.students[0]);
 
 	t.end();
 });

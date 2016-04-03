@@ -2,7 +2,10 @@ export default class School {
 	constructor() {
 		this.state = {
 			tasks: [],
+			students: [],
+			teams: [],
 			lastTaskId: 0,
+			lastStudentId: 0,
 		};
 	}
 
@@ -27,13 +30,15 @@ export default class School {
 			throw new Error('Unknown task type, expected \'individual\' or \'team\'');
 		}
 
-		this.state.tasks.push({
+		const {state} = this;
+
+		state.tasks.push({
 			type,
 			name,
-			id: ++this.state.lastTaskId,
+			id: ++state.lastTaskId,
 		});
 
-		return this.state.lastTaskId;
+		return state.lastTaskId;
 	}
 
 	/**
@@ -73,5 +78,92 @@ export default class School {
 		}
 		
 		return this.state.tasks.filter((task) => task.id === id)[0];
+	}
+
+	/**
+	 * Assigns task to teams or students
+	 *
+	 * @param {number} id — task identifier
+	 * @param {(number[]|string[])} executors — students or teams
+	 * @return {School}
+	 */
+	assignTask(id, executors) {
+		const taskType = this.getTask(id).type;
+		
+		executors
+			// оставляем только исполнителей, подходящих к типу задачи
+			.filter((executorId) => {
+				const filterBy = (taskType === 'team') ? 'string' : 'number';
+				return typeof executorId === filterBy;
+			})
+			.map((executorId) => this[(taskType === 'team') ? 'getTeam' : 'getStudent'](executorId))
+			.forEach((executor) => {
+				if (executor.tasks.filter((task) => task.id == id).length) return;
+				executor.tasks.push({
+					id,
+					completed: false,
+					score: null,
+				});
+			});
+
+		return this;
+	}
+
+
+	/**
+	 * Creates new students team
+	 *
+	 * @param {string} name — unique team name
+	 * @param {number[]} members — team members
+	 * @return {School}
+	 */
+	createTeam(name, members) {
+		if (this.state.teams.filter((team) => team.name === name).length) return;
+		if (!Array.isArray(members)) return;
+
+		this.state.teams.push({
+			name,
+			members,
+			tasks: [],
+		});
+
+		return this;
+	}
+
+	/**
+	 * Returns team with specified name
+	 *
+	 * @param {string} name — team name
+	 * @return {Object} Team with specified name.
+	 */
+	getTeam(name) {
+		return this.state.teams.filter((team) => team.name === name)[0];
+	}
+
+
+	/**
+	 * Creates new student
+	 *
+	 * @param {string} fullname — student full name
+	 * @return {number} student id
+	 */
+	createStudent(fullname) {
+		if (!fullname || typeof fullname !=='string' || fullname.trim() === '') {
+			throw new Error('Student fullname must be specified');
+		}
+
+		const {state} = this;
+
+		state.students.push({
+			fullname,
+			id: ++state.lastStudentId,
+			tasks: [],
+		});
+
+		return state.lastStudentId;
+	}
+
+	getStudent(id) {
+		return this.state.students.filter((student) => student.id === id)[0];
 	}
 }
