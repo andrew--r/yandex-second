@@ -14,6 +14,10 @@ var School = function () {
 	function School() {
 		_classCallCheck(this, School);
 
+		// По-хорошему этот объект должен быть приватным,
+		// но, к сожалению, в ES6 нет приватных свойств и методов класса.
+		// Можно было бы обойтись IIFE с модулем внутри, но я хотел
+		// использовать классы ES6.
 		this.state = {
 			tasks: [],
 			students: [],
@@ -225,8 +229,9 @@ var School = function () {
 			state.students.push({
 				fullname: fullname,
 				id: ++state.lastStudentId,
+				team: null,
 				tasks: [],
-				team: null
+				preferredMentors: []
 			});
 
 			return state.lastStudentId;
@@ -302,7 +307,8 @@ var School = function () {
 
 			state.mentors.push({
 				fullname: fullname,
-				id: ++state.lastMentorId
+				id: ++state.lastMentorId,
+				preferredStudents: []
 			});
 
 			return state.lastMentorId;
@@ -419,6 +425,110 @@ var School = function () {
 			});
 			return this;
 		}
+
+		// GETTERS
+
+		/**
+   * Returns students list
+   *
+   * @return {Object[]}
+   */
+
+	}, {
+		key: 'getStudents',
+		value: function getStudents() {
+			return this.state.students;
+		}
+
+		/**
+   * Returns mentors list
+   *
+   * @return {Object[]}
+   */
+
+	}, {
+		key: 'getMentors',
+		value: function getMentors() {
+			return this.state.mentors;
+		}
+
+		/**
+   * Returns tasks list
+   *
+   * @return {Object[]}
+   */
+
+	}, {
+		key: 'getTasks',
+		value: function getTasks() {
+			return this.state.tasks;
+		}
+
+		/**
+   * Returns teams list
+   *
+   * @return {Object[]}
+   */
+
+	}, {
+		key: 'getTeams',
+		value: function getTeams() {
+			return this.state.teams;
+		}
+
+		// PRIORITIES
+
+		/**
+   * Adds mentor or student to list of student or mentor priorities
+   *
+   * @param {Object} options
+   * @param {number} options.subjectId
+   * @param {string} options.subjectType — 'student' or 'mentor'
+   * @param {number} options.value — mentor or student identifier depending
+   * on options.subjectType
+   * @return {(number|Object)} Added value (if it doesn't exist in list) or undefined
+   */
+
+	}, {
+		key: 'pushPriority',
+		value: function pushPriority(options) {
+			var subjectId = options.subjectId;
+			var value = options.value;
+
+			var subjectType = capitalize(options.subjectType);
+			var revertedSubject = getRevertedSubjectType(subjectType);
+
+			if (!this['get' + revertedSubject](value)) {
+				throw new Error(revertedSubject + ' with id ' + value + ' doesn\'t exist');
+			}
+
+			var preferredList = this['get' + subjectType](subjectId)['preferred' + revertedSubject + 's'];
+
+			if (! ~preferredList.indexOf(value)) {
+				preferredList.push(value);
+				return value;
+			}
+		}
+
+		/**
+   * Removes last mentor or student from list of student or mentor priorities
+   *
+   * @param {Object} options
+   * @param {number} options.subjectId
+   * @param {string} options.subjectType — 'student' or 'mentor'
+   * @return {Object[]}
+   */
+
+	}, {
+		key: 'popPriority',
+		value: function popPriority(options) {
+			var subjectId = options.subjectId;
+
+			var subjectType = capitalize(options.subjectType);
+			var revertedSubject = getRevertedSubjectType(subjectType);
+			var preferredList = this['get' + subjectType](subjectId)['preferred' + revertedSubject + 's'];
+			return preferredList.pop();
+		}
 	}]);
 
 	return School;
@@ -439,4 +549,18 @@ exports.default = School;
 function contains(array, predicate) {
 	var result = array.filter(predicate);
 	return Boolean(result.length);
+}
+
+/**
+ * Returns string with first char in uppercase and other chars in lowercase
+ *
+ * @param {string} string
+ * @return {string} Capitalized string.
+ */
+function capitalize(string) {
+	return string[0].toUpperCase() + string.toLowerCase().slice(1);
+}
+
+function getRevertedSubjectType(subject) {
+	return subject === 'Mentor' ? 'Student' : 'Mentor';
 }

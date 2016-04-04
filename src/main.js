@@ -1,5 +1,9 @@
 export default class School {
 	constructor() {
+		// По-хорошему этот объект должен быть приватным,
+		// но, к сожалению, в ES6 нет приватных свойств и методов класса.
+		// Можно было бы обойтись IIFE с модулем внутри, но я хотел
+		// использовать классы ES6.
 		this.state = {
 			tasks: [],
 			students: [],
@@ -184,8 +188,9 @@ export default class School {
 		state.students.push({
 			fullname,
 			id: ++state.lastStudentId,
-			tasks: [],
 			team: null,
+			tasks: [],
+			preferredMentors: [],
 		});
 
 		return state.lastStudentId;
@@ -243,6 +248,7 @@ export default class School {
 		state.mentors.push({
 			fullname,
 			id: ++state.lastMentorId,
+			preferredStudents: [],
 		});
 
 		return state.lastMentorId;
@@ -331,6 +337,91 @@ export default class School {
 		this.state.teams = this.state.teams.filter((team) => team.name !== name);
 		return this;
 	}
+
+
+	// GETTERS
+
+	/**
+	 * Returns students list
+	 *
+	 * @return {Object[]}
+	 */
+	getStudents() {
+		return this.state.students;
+	}
+
+	/**
+	 * Returns mentors list
+	 *
+	 * @return {Object[]}
+	 */
+	getMentors() {
+		return this.state.mentors;
+	}
+
+	/**
+	 * Returns tasks list
+	 *
+	 * @return {Object[]}
+	 */
+	getTasks() {
+		return this.state.tasks;
+	}
+
+	/**
+	 * Returns teams list
+	 *
+	 * @return {Object[]}
+	 */
+	getTeams() {
+		return this.state.teams;
+	}
+
+
+	// PRIORITIES
+
+	/**
+	 * Adds mentor or student to list of student or mentor priorities
+	 *
+	 * @param {Object} options
+	 * @param {number} options.subjectId
+	 * @param {string} options.subjectType — 'student' or 'mentor'
+	 * @param {number} options.value — mentor or student identifier depending
+	 * on options.subjectType
+	 * @return {(number|Object)} Added value (if it doesn't exist in list) or undefined
+	 */
+	pushPriority(options) {
+		const {subjectId, value} = options;
+		const subjectType = capitalize(options.subjectType);
+		const revertedSubject = getRevertedSubjectType(subjectType);
+
+		if (!this[`get${revertedSubject}`](value)) {
+			throw new Error(`${revertedSubject} with id ${value} doesn't exist`);
+		}
+
+		const preferredList = this[`get${subjectType}`](subjectId)[`preferred${revertedSubject}s`];
+
+		if (!~preferredList.indexOf(value)) {
+			preferredList.push(value);
+			return value;
+		}
+	}
+
+	/**
+	 * Removes last mentor or student from list of student or mentor priorities
+	 *
+	 * @param {Object} options
+	 * @param {number} options.subjectId
+	 * @param {string} options.subjectType — 'student' or 'mentor'
+	 * @return {Object[]}
+	 */
+	popPriority(options) {
+		const {subjectId} = options;
+		const subjectType = capitalize(options.subjectType);
+		const revertedSubject = getRevertedSubjectType(subjectType);
+		const preferredList = this[`get${subjectType}`](subjectId)[`preferred${revertedSubject}s`];
+		return preferredList.pop();
+	}
 }
 
 
@@ -346,4 +437,18 @@ export default class School {
 function contains(array, predicate) {
 	const result = array.filter(predicate);
 	return Boolean(result.length);
+}
+
+/**
+ * Returns string with first char in uppercase and other chars in lowercase
+ *
+ * @param {string} string
+ * @return {string} Capitalized string.
+ */
+function capitalize(string) {
+	return string[0].toUpperCase() + string.toLowerCase().slice(1);
+}
+
+function getRevertedSubjectType(subject) {
+	return subject === 'Mentor' ? 'Student' : 'Mentor';
 }

@@ -130,15 +130,17 @@ test('create and delete students', function (t) {
 	var firstStudent = {
 		fullname: 'Андрей Романов',
 		id: 1,
-		tasks: [],
 		team: null,
+		tasks: [],
+		preferredMentors: [],
 	};
 
 	var secondStudent = {
 		fullname: 'Мария Кузницына',
 		id: 2,
-		tasks: [],
 		team: null,
+		tasks: [],
+		preferredMentors: [],
 	};
 
 	t.equals(Shri.createStudent('Андрей Романов'), 1);
@@ -240,8 +242,9 @@ test('delete students and autodelete teams', function (t) {
 	var firstStudent = {
 		fullname: 'Андрей Романов',
 		id: 1,
-		tasks: [],
 		team: 'First',
+		tasks: [],
+		preferredMentors: [],
 	};
 
 	t.deepEqual(Shri.getStudent(1), firstStudent);
@@ -265,6 +268,7 @@ test('create, delete and get mentors', function (t) {
 	var firstMentor = {
 		fullname: 'Андрей Ситник',
 		id: 1,
+		preferredStudents: [],
 	};
 
 	t.deepEqual(Shri.getMentor(1), firstMentor);
@@ -430,6 +434,249 @@ test('assign, complete and delete tasks', function (t) {
 		},
 		/executorId for task with type \'team\' must be a string/
 	);
+
+	t.end();
+});
+
+
+test('getters', function (t) {
+	var Shri = new School();
+
+	Shri.createStudent('Андрей Романов');
+	Shri.createStudent('Мария Кузницына');
+
+	Shri.createMentor('Иван Иванов');
+
+	Shri.createTask('team', 'Пример задания');
+	Shri.createTeam('Dreamteam', [1, 2]);
+
+	var students = [
+		{
+			fullname: 'Андрей Романов',
+			id: 1,
+			team: 'Dreamteam',
+			tasks: [],
+			preferredMentors: [],
+		},
+		{
+			fullname: 'Мария Кузницына',
+			id: 2,
+			team: 'Dreamteam',
+			tasks: [],
+			preferredMentors: [],
+		},
+	];
+
+	t.deepEqual(Shri.getStudents(), students);
+
+	var mentors = [
+		{
+			fullname: 'Иван Иванов',
+			id: 1,
+			preferredStudents: [],
+		},
+	];
+
+	t.deepEqual(Shri.getMentors(), mentors);
+
+	var tasks = [
+		{
+			id: 1,
+			name: 'Пример задания',
+			type: 'team',
+		},
+	];
+
+	t.deepEqual(Shri.getTasks(), tasks);
+
+	var teams = [
+		{
+			name: 'Dreamteam',
+			members: [1, 2],
+			tasks: [],
+		},
+	];
+
+	t.deepEqual(Shri.getTeams(), teams);
+
+	t.end();
+});
+
+
+test('push priorities', function (t) {
+	var Shri = new School();
+
+	t.equals(Shri.createStudent('Андрей Романов'), 1);
+	t.equals(Shri.createStudent('Даниил Рудель'), 2);
+	t.equals(Shri.createMentor('Роман Лютиков'), 1);
+	t.equals(Shri.createMentor('Андрей Ситник'), 2);
+
+	t.equals(Shri.pushPriority({
+		subjectId: 1,
+		subjectType: 'student',
+		value: 1,
+	}), 1);
+
+	t.equals(Shri.pushPriority({
+		subjectId: 1,
+		subjectType: 'student',
+		value: 1,
+	}), undefined);
+
+	t.equals(Shri.pushPriority({
+		subjectId: 1,
+		subjectType: 'student',
+		value: 2,
+	}), 2);
+
+	t.equals(Shri.pushPriority({
+		subjectId: 1,
+		subjectType: 'student',
+		value: 2,
+	}), undefined);
+
+	var firstStudent = {
+		fullname: 'Андрей Романов',
+		id: 1,
+		team: null,
+		tasks: [],
+		preferredMentors: [1, 2],
+	};
+
+	t.deepEqual(Shri.getStudent(1), firstStudent);
+
+	t.equals(Shri.pushPriority({
+		subjectId: 2,
+		subjectType: 'student',
+		value: 2,
+	}), 2);
+
+	t.equals(Shri.pushPriority({
+		subjectId: 2,
+		subjectType: 'student',
+		value: 1,
+	}), 1);
+
+	var secondStudent = {
+		fullname: 'Даниил Рудель',
+		id: 2,
+		team: null,
+		tasks: [],
+		preferredMentors: [2, 1],
+	};
+
+	t.deepEqual(Shri.getStudent(2), secondStudent);
+
+	t.equals(Shri.pushPriority({
+		subjectId: 1,
+		subjectType: 'mentor',
+		value: 1,
+	}), 1);
+
+	t.equals(Shri.pushPriority({
+		subjectId: 1,
+		subjectType: 'mentor',
+		value: 1,
+	}), undefined);
+
+	t.equals(Shri.pushPriority({
+		subjectId: 1,
+		subjectType: 'mentor',
+		value: 2,
+	}), 2);
+
+	var firstMentor = {
+		fullname: 'Роман Лютиков',
+		id: 1,
+		preferredStudents: [1, 2],
+	};
+
+	t.deepEqual(Shri.getMentor(1), firstMentor);
+
+	t.equals(Shri.pushPriority({
+		subjectId: 2,
+		subjectType: 'mentor',
+		value: 2,
+	}), 2);
+
+	t.equals(Shri.pushPriority({
+		subjectId: 2,
+		subjectType: 'mentor',
+		value: 1,
+	}), 1);
+
+	var secondMentor = {
+		fullname: 'Андрей Ситник',
+		id: 2,
+		preferredStudents: [2, 1],
+	};
+
+	t.deepEqual(Shri.getMentor(2), secondMentor);
+
+	t.throws(
+		function () {
+			Shri.pushPriority({
+				subjectId: 1,
+				subjectType: 'student',
+				value: 200,
+			});
+		},
+		/Mentor with id 200 doesn't exist/
+	);
+
+	t.throws(
+		function () {
+			Shri.pushPriority({
+				subjectId: 1,
+				subjectType: 'mentor',
+				value: 59991,
+			});
+		},
+		/Student with id 59991 doesn't exist/
+	);
+
+	t.end();
+});
+
+test('pop priorities', function (t) {
+	var Shri = new School();
+
+	t.equals(Shri.createStudent('Андрей Романов'), 1);
+	t.equals(Shri.createStudent('Даниил Рудель'), 2);
+	t.equals(Shri.createMentor('Роман Лютиков'), 1);
+	t.equals(Shri.createMentor('Андрей Ситник'), 2);
+
+	Shri.pushPriority({
+		subjectId: 1,
+		subjectType: 'student',
+		value: 1,
+	});
+
+	Shri.pushPriority({
+		subjectId: 1,
+		subjectType: 'student',
+		value: 2,
+	});
+
+	t.equals(Shri.popPriority({
+		subjectId: 1,
+		subjectType: 'student',
+	}), 2);
+
+	t.equals(Shri.popPriority({
+		subjectId: 1,
+		subjectType: 'student',
+	}), 1);
+
+	t.equals(Shri.popPriority({
+		subjectId: 1,
+		subjectType: 'student',
+	}), undefined);
+
+	t.equals(Shri.popPriority({
+		subjectId: 2,
+		subjectType: 'student',
+	}), undefined);
 
 	t.end();
 });
