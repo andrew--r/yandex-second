@@ -680,3 +680,108 @@ test('pop priorities', function (t) {
 
 	t.end();
 });
+
+test('remove priorities', function (t) {
+	var Shri = new School();
+
+	t.equals(Shri.createStudent('Андрей Романов'), 1);
+	t.equals(Shri.createStudent('Даниил Рудель'), 2);
+	t.equals(Shri.createMentor('Роман Лютиков'), 1);
+	t.equals(Shri.createMentor('Андрей Ситник'), 2);
+
+	Shri.pushPriority({
+		subjectId: 1,
+		subjectType: 'student',
+		value: 1,
+	});
+
+	Shri.pushPriority({
+		subjectId: 1,
+		subjectType: 'student',
+		value: 2,
+	});
+
+	var priorities = [1, 2];
+
+	t.deepEqual(Shri.getStudent(1).preferredMentors, priorities);
+
+	t.equals(Shri.removePriority({
+		subjectId: 1,
+		subjectType: 'student',
+		value: 1,
+	}), 1);
+
+	var changedPriorities = [2];
+
+	t.deepEqual(Shri.getStudent(1).preferredMentors, changedPriorities);
+
+	t.equals(Shri.removePriority({
+		subjectId: 1,
+		subjectType: 'student',
+		value: 1,
+	}), undefined);
+
+	t.equals(Shri.removePriority({
+		subjectId: 1,
+		subjectType: 'student',
+		value: 2,
+	}), 2);
+
+	var finalPriorities = [];
+
+	t.deepEqual(Shri.getStudent(1).preferredMentors, finalPriorities);
+
+	t.end();
+});
+
+test('insert priorities', function (t) {
+	var Shri = new School();
+
+	t.equals(Shri.createStudent('Андрей Романов'), 1);
+	t.equals(Shri.createStudent('Даниил Рудель'), 2);
+	t.equals(Shri.createMentor('Роман Лютиков'), 1);
+	t.equals(Shri.createMentor('Андрей Ситник'), 2);
+	t.equals(Shri.createMentor('Роман Дворнов'), 3);
+
+
+	Shri.pushPriority({
+		subjectId: 1,
+		subjectType: 'student',
+		value: 1,
+	});
+
+	Shri.pushPriority({
+		subjectId: 1,
+		subjectType: 'student',
+		value: 3,
+	});
+
+	var priorities = [1, 3];
+
+	t.deepEqual(Shri.getStudent(1).preferredMentors, priorities);
+
+	t.ok(Shri.insertPriority({
+		subjectId: 1,
+		subjectType: 'student',
+		value: 2,
+		index: 1,
+	}));
+
+	var changedPriorities = [1, 2, 3];
+
+	t.deepEqual(Shri.getStudent(1).preferredMentors, changedPriorities);
+
+	t.throws(
+		function () {
+			Shri.insertPriority({
+				subjectId: 1,
+				subjectType: 'student',
+				value: 5,
+				index: 1,
+			});
+		},
+		/Mentor with id 5 doesn't exist/
+	);
+
+	t.end();
+});

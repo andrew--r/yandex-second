@@ -419,8 +419,67 @@ export default class School {
 		const {subjectId} = options;
 		const subjectType = capitalize(options.subjectType);
 		const revertedSubject = getRevertedSubjectType(subjectType);
+
+		return this[`get${subjectType}`](subjectId)[`preferred${revertedSubject}s`].pop();
+	}
+
+	/**
+	 * Add priority with specified index
+	 *
+	 * @param {Object} options
+	 * @param {number} options.subjectId
+	 * @param {string} options.subjectType — 'student' or 'mentor'
+	 * @param {number} options.value — mentor or student identifier
+	 * @param {number} index — where to insert new priority
+	 * @return {School}
+	 */
+	insertPriority(options) {
+		const {subjectId, value, index} = options;
+		const subjectType = capitalize(options.subjectType);
+		const revertedSubject = getRevertedSubjectType(subjectType);
+
+		if (!this[`get${revertedSubject}`](value)) {
+			throw new Error(`${revertedSubject} with id ${value} doesn't exist`);
+		}
+
 		const preferredList = this[`get${subjectType}`](subjectId)[`preferred${revertedSubject}s`];
-		return preferredList.pop();
+
+		if (~preferredList.indexOf(value)) {
+			this.removePriority({
+				subjectId,
+				subjectType,
+				value
+			});
+		}
+
+		preferredList.splice(index, 0, value);
+		return this;
+	}
+
+	/**
+	 * Removes specified priority from list of priorities
+	 *
+	 * @param {Object} options
+	 * @param {number} options.subjectId
+	 * @param {string} options.subjectType — 'student' or 'mentor'
+	 * @param {number} options.value — mentor's or student's id to remove
+	 * @return {number} Removed priority
+	 */
+	removePriority(options) {
+		const {subjectId, value} = options;
+		const subjectType = capitalize(options.subjectType);
+		const revertedSubject = getRevertedSubjectType(subjectType);
+
+		if (!this[`get${revertedSubject}`](value)) {
+			throw new Error(`${revertedSubject} with id ${value} doesn't exist`);
+		}
+
+		const preferredList = this[`get${subjectType}`](subjectId)[`preferred${revertedSubject}s`];
+		const realIndex = preferredList.indexOf(value);
+
+		if (~realIndex) {
+			return preferredList.splice(realIndex, 1)[0];
+		}
 	}
 }
 
@@ -449,6 +508,10 @@ function capitalize(string) {
 	return string[0].toUpperCase() + string.toLowerCase().slice(1);
 }
 
+/**
+ * @param {string} subject — 'Mentor' or 'Student'
+ * @return {string} Reverted subject
+ */
 function getRevertedSubjectType(subject) {
 	return subject === 'Mentor' ? 'Student' : 'Mentor';
 }

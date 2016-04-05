@@ -526,8 +526,78 @@ var School = function () {
 
 			var subjectType = capitalize(options.subjectType);
 			var revertedSubject = getRevertedSubjectType(subjectType);
+
+			return this['get' + subjectType](subjectId)['preferred' + revertedSubject + 's'].pop();
+		}
+
+		/**
+   * Add priority with specified index
+   *
+   * @param {Object} options
+   * @param {number} options.subjectId
+   * @param {string} options.subjectType — 'student' or 'mentor'
+   * @param {number} options.value — mentor or student identifier
+   * @param {number} index — where to insert new priority
+   * @return {School}
+   */
+
+	}, {
+		key: 'insertPriority',
+		value: function insertPriority(options) {
+			var subjectId = options.subjectId;
+			var value = options.value;
+			var index = options.index;
+
+			var subjectType = capitalize(options.subjectType);
+			var revertedSubject = getRevertedSubjectType(subjectType);
+
+			if (!this['get' + revertedSubject](value)) {
+				throw new Error(revertedSubject + ' with id ' + value + ' doesn\'t exist');
+			}
+
 			var preferredList = this['get' + subjectType](subjectId)['preferred' + revertedSubject + 's'];
-			return preferredList.pop();
+
+			if (~preferredList.indexOf(value)) {
+				this.removePriority({
+					subjectId: subjectId,
+					subjectType: subjectType,
+					value: value
+				});
+			}
+
+			preferredList.splice(index, 0, value);
+			return this;
+		}
+
+		/**
+   * Removes specified priority from list of priorities
+   *
+   * @param {Object} options
+   * @param {number} options.subjectId
+   * @param {string} options.subjectType — 'student' or 'mentor'
+   * @param {number} options.value — mentor's or student's id to remove
+   * @return {number} Removed priority
+   */
+
+	}, {
+		key: 'removePriority',
+		value: function removePriority(options) {
+			var subjectId = options.subjectId;
+			var value = options.value;
+
+			var subjectType = capitalize(options.subjectType);
+			var revertedSubject = getRevertedSubjectType(subjectType);
+
+			if (!this['get' + revertedSubject](value)) {
+				throw new Error(revertedSubject + ' with id ' + value + ' doesn\'t exist');
+			}
+
+			var preferredList = this['get' + subjectType](subjectId)['preferred' + revertedSubject + 's'];
+			var realIndex = preferredList.indexOf(value);
+
+			if (~realIndex) {
+				return preferredList.splice(realIndex, 1)[0];
+			}
 		}
 	}]);
 
@@ -561,6 +631,10 @@ function capitalize(string) {
 	return string[0].toUpperCase() + string.toLowerCase().slice(1);
 }
 
+/**
+ * @param {string} subject — 'Mentor' or 'Student'
+ * @return {string} Reverted subject
+ */
 function getRevertedSubjectType(subject) {
 	return subject === 'Mentor' ? 'Student' : 'Mentor';
 }
