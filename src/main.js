@@ -188,6 +188,7 @@ export default class School {
 		state.students.push({
 			fullname,
 			id: ++state.lastStudentId,
+			mentor: null,
 			team: null,
 			tasks: [],
 			preferredMentors: [],
@@ -249,6 +250,7 @@ export default class School {
 			fullname,
 			id: ++state.lastMentorId,
 			preferredStudents: [],
+			students: [],
 		});
 
 		return state.lastMentorId;
@@ -481,6 +483,51 @@ export default class School {
 			return preferredList.splice(realIndex, 1)[0];
 		}
 	}
+
+	/**
+	 * Distributes students between mentors taking into account their priorities
+	 *
+	 * @return {School}
+	 */
+	distributePriorities() {
+		const {mentors, students} = this.state;
+		const averageMentorStudentsCount = Math.floor(students.length / mentors.length); // сколько студентов должно быть у каждого ментора
+		const weightsTable = createWeightsTable(mentors, students).sort(sortByValues);
+		const mentorsWithExtraStudents = [];
+		let extraStudents = students.length % mentors.length;
+		
+		students.forEach((student) => {
+			const pairs = weightsTable.filter((pair) => pair.studentId === student.id);
+			let currentItem = 0;
+
+			while (!student.mentor) {
+				const mentorId = pairs[currentItem].mentorId;
+				const mentor = this.getMentor(mentorId);
+				const mentorStudentsCount = mentor.students.length;
+
+				const isFullButExtraAvailable = (
+					mentorStudentsCount >= averageMentorStudentsCount
+					&& extraStudents
+					&& !~mentorsWithExtraStudents.indexOf(mentorId)
+				);
+				const isntFull = mentorStudentsCount < averageMentorStudentsCount;
+
+				if (isFullButExtraAvailable) {
+					extraStudents--;
+					mentorsWithExtraStudents.push(mentorId);
+				}
+
+				if (isntFull || isFullButExtraAvailable) {
+					student.mentor = mentorId;
+					mentor.students.push(student.id);
+				}
+
+				currentItem++;
+			}
+		});
+
+		return this;
+	}
 }
 
 
@@ -514,4 +561,59 @@ function capitalize(string) {
  */
 function getRevertedSubjectType(subject) {
 	return subject === 'Mentor' ? 'Student' : 'Mentor';
+}
+
+/**
+ * Function for sorting list of objects by its key 'value' in descending order
+ *
+ * @return {number} Difference between b.value and a.value
+ */
+function sortByValues(a, b) {
+	return b.value - a.value;
+}
+
+/**
+ * Creates weights table for mentors and students by priorities
+ *
+ * @return {Object[]} Weigts table.
+ */
+function createWeightsTable(mentors, students) {
+	const weightsTable = [];
+
+	mentors.forEach((mentor) => {
+		mentor.preferredStudents.forEach((studentId, index, prioritiesList) => {
+			weightsTable.push({
+				studentId,
+				mentorId: mentor.id,
+				// вес пары без учёта приоритетов студентов
+				value: prioritiesList.length - index,
+			});
+		});
+
+		// Учитываем студентов, не добавленных в список приоритетов
+		students.forEach((student) => {
+			if (!~mentor.preferredStudents.indexOf(student.id)) {
+				weightsTable.push({
+					mentorId: mentor.id,
+					studentId: student.id,
+					value: 0,
+				});
+			}
+		});
+	});
+
+	students.forEach((student) => {
+		student.preferredMentors.forEach((mentorId, index, prioritiesList) => {
+			const pair = weightsTable.filter((item) => {
+				return item.mentorId === mentorId && item.studentId === student.id;
+			})[0];
+
+			pair.value += prioritiesList.length - index;
+		});
+
+		// не добавленных в приоритеты менторов учитывать не нужно, с ними уже
+		// есть пара
+	});
+
+	return weightsTable;
 }

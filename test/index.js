@@ -130,6 +130,7 @@ test('create and delete students', function (t) {
 	var firstStudent = {
 		fullname: 'Андрей Романов',
 		id: 1,
+		mentor: null,
 		team: null,
 		tasks: [],
 		preferredMentors: [],
@@ -138,6 +139,7 @@ test('create and delete students', function (t) {
 	var secondStudent = {
 		fullname: 'Мария Кузницына',
 		id: 2,
+		mentor: null,
 		team: null,
 		tasks: [],
 		preferredMentors: [],
@@ -242,6 +244,7 @@ test('delete students and autodelete teams', function (t) {
 	var firstStudent = {
 		fullname: 'Андрей Романов',
 		id: 1,
+		mentor: null,
 		team: 'First',
 		tasks: [],
 		preferredMentors: [],
@@ -269,6 +272,7 @@ test('create, delete and get mentors', function (t) {
 		fullname: 'Андрей Ситник',
 		id: 1,
 		preferredStudents: [],
+		students: [],
 	};
 
 	t.deepEqual(Shri.getMentor(1), firstMentor);
@@ -454,6 +458,7 @@ test('getters', function (t) {
 		{
 			fullname: 'Андрей Романов',
 			id: 1,
+			mentor: null,
 			team: 'Dreamteam',
 			tasks: [],
 			preferredMentors: [],
@@ -461,6 +466,7 @@ test('getters', function (t) {
 		{
 			fullname: 'Мария Кузницына',
 			id: 2,
+			mentor: null,
 			team: 'Dreamteam',
 			tasks: [],
 			preferredMentors: [],
@@ -474,6 +480,7 @@ test('getters', function (t) {
 			fullname: 'Иван Иванов',
 			id: 1,
 			preferredStudents: [],
+			students: [],
 		},
 	];
 
@@ -538,6 +545,7 @@ test('push priorities', function (t) {
 	var firstStudent = {
 		fullname: 'Андрей Романов',
 		id: 1,
+		mentor: null,
 		team: null,
 		tasks: [],
 		preferredMentors: [1, 2],
@@ -560,6 +568,7 @@ test('push priorities', function (t) {
 	var secondStudent = {
 		fullname: 'Даниил Рудель',
 		id: 2,
+		mentor: null,
 		team: null,
 		tasks: [],
 		preferredMentors: [2, 1],
@@ -589,6 +598,7 @@ test('push priorities', function (t) {
 		fullname: 'Роман Лютиков',
 		id: 1,
 		preferredStudents: [1, 2],
+		students: [],
 	};
 
 	t.deepEqual(Shri.getMentor(1), firstMentor);
@@ -609,6 +619,7 @@ test('push priorities', function (t) {
 		fullname: 'Андрей Ситник',
 		id: 2,
 		preferredStudents: [2, 1],
+		students: [],
 	};
 
 	t.deepEqual(Shri.getMentor(2), secondMentor);
@@ -637,6 +648,7 @@ test('push priorities', function (t) {
 
 	t.end();
 });
+
 
 test('pop priorities', function (t) {
 	var Shri = new School();
@@ -680,6 +692,7 @@ test('pop priorities', function (t) {
 
 	t.end();
 });
+
 
 test('remove priorities', function (t) {
 	var Shri = new School();
@@ -734,6 +747,7 @@ test('remove priorities', function (t) {
 	t.end();
 });
 
+
 test('insert priorities', function (t) {
 	var Shri = new School();
 
@@ -782,6 +796,303 @@ test('insert priorities', function (t) {
 		},
 		/Mentor with id 5 doesn't exist/
 	);
+
+	t.end();
+});
+
+
+test('distribute priorities 1', function (t) {
+	var Shri = new School();
+
+	Shri.createStudent('Андрей Романов'); // 1
+	Shri.createStudent('Даниил Рудель'); // 2
+	Shri.createStudent('Мария Кузницына'); // 3
+	Shri.createStudent('Егор Китцелюк'); // 4
+	Shri.createStudent('Анна Василюк'); // 5
+
+	Shri.createMentor('Роман Лютиков'); // 1
+	Shri.createMentor('Андрей Ситник'); // 2
+
+	Shri.pushPriority({
+		subjectId: 1,
+		subjectType: 'student',
+		value: 1,
+	});
+
+	Shri.pushPriority({
+		subjectId: 3,
+		subjectType: 'student',
+		value: 1,
+	});
+
+	Shri.pushPriority({
+		subjectId: 2,
+		subjectType: 'student',
+		value: 2,
+	});
+
+	Shri.pushPriority({
+		subjectId: 1,
+		subjectType: 'mentor',
+		value: 1,
+	});
+
+	Shri.pushPriority({
+		subjectId: 2,
+		subjectType: 'mentor',
+		value: 3,
+	});
+
+	Shri.pushPriority({
+		subjectId: 2,
+		subjectType: 'mentor',
+		value: 1,
+	});
+
+	// weightsTable: [
+	// 	{ mentorId: 1, studentId: 1, value: 2 },
+	// 	{ mentorId: 2, studentId: 3, value: 2 },
+	// 	{ mentorId: 1, studentId: 3, value: 1 },
+	// 	{ mentorId: 2, studentId: 1, value: 1 },
+	// 	{ mentorId: 2, studentId: 2, value: 1 },
+	// 	{ mentorId: 1, studentId: 2, value: 0 },
+	// 	{ mentorId: 1, studentId: 4, value: 0 },
+	// 	{ mentorId: 1, studentId: 5, value: 0 },
+	// 	{ mentorId: 2, studentId: 4, value: 0 },
+	// 	{ mentorId: 2, studentId: 5, value: 0 }
+	// ]
+
+	t.ok(Shri.distributePriorities());
+
+	t.equals(Shri.getStudent(1).mentor, 1);
+	t.equals(Shri.getStudent(2).mentor, 2);
+	t.equals(Shri.getStudent(3).mentor, 2);
+	t.equals(Shri.getStudent(4).mentor, 1);
+	t.equals(Shri.getStudent(5).mentor, 1);
+	t.deepEqual(Shri.getMentor(1).students, [1, 4, 5]);
+	t.deepEqual(Shri.getMentor(2).students, [2, 3]);
+
+	t.end();
+});
+
+
+test('distribute priorities 2', function (t) {
+	var Shri = new School();
+
+	Shri.createStudent('Андрей Романов'); // 1
+	Shri.createStudent('Даниил Рудель'); // 2
+	Shri.createStudent('Мария Кузницына'); // 3
+	Shri.createStudent('Егор Китцелюк'); // 4
+	Shri.createStudent('Анна Василюк'); // 5
+	Shri.createStudent('Олег Петров'); // 6
+	Shri.createStudent('Артём Балякно'); // 7
+	Shri.createStudent('Алексей Иванов'); // 8
+	Shri.createStudent('Слава Лапшин'); // 9
+	Shri.createStudent('Яна Муравейко'); // 10
+
+	Shri.createMentor('Роман Лютиков'); // 1
+	Shri.createMentor('Андрей Ситник'); // 2
+	Shri.createMentor('Роман Комаров'); // 3
+
+	// studentId 1
+	Shri.pushPriority({
+		subjectId: 1,
+		subjectType: 'student',
+		value: 3,
+	});
+
+	Shri.pushPriority({
+		subjectId: 1,
+		subjectType: 'student',
+		value: 2,
+	});
+
+	// studentId 2
+	Shri.pushPriority({
+		subjectId: 2,
+		subjectType: 'student',
+		value: 3,
+	});
+
+	// studentId 3
+	Shri.pushPriority({
+		subjectId: 3,
+		subjectType: 'student',
+		value: 1,
+	});
+
+	// studentId 4
+	Shri.pushPriority({
+		subjectId: 4,
+		subjectType: 'student',
+		value: 2,
+	});
+
+	Shri.pushPriority({
+		subjectId: 4,
+		subjectType: 'student',
+		value: 1,
+	});
+
+	// studentId 5
+	Shri.pushPriority({
+		subjectId: 5,
+		subjectType: 'student',
+		value: 3,
+	});
+
+	// studentId 7
+	Shri.pushPriority({
+		subjectId: 7,
+		subjectType: 'student',
+		value: 2,
+	});
+
+	Shri.pushPriority({
+		subjectId: 7,
+		subjectType: 'student',
+		value: 1,
+	});
+
+	// studentId 10
+	Shri.pushPriority({
+		subjectId: 10,
+		subjectType: 'student',
+		value: 2,
+	});
+
+	Shri.pushPriority({
+		subjectId: 7,
+		subjectType: 'student',
+		value: 3,
+	});
+
+	// mentorId 1
+	Shri.pushPriority({
+		subjectId: 1,
+		subjectType: 'mentor',
+		value: 6,
+	});
+
+	Shri.pushPriority({
+		subjectId: 1,
+		subjectType: 'mentor',
+		value: 10,
+	});
+
+	Shri.pushPriority({
+		subjectId: 1,
+		subjectType: 'mentor',
+		value: 1,
+	});
+
+	Shri.pushPriority({
+		subjectId: 1,
+		subjectType: 'mentor',
+		value: 3,
+	});
+
+	// mentorId 2
+	Shri.pushPriority({
+		subjectId: 2,
+		subjectType: 'mentor',
+		value: 1,
+	});
+
+	Shri.pushPriority({
+		subjectId: 2,
+		subjectType: 'mentor',
+		value: 3,
+	});
+
+	Shri.pushPriority({
+		subjectId: 2,
+		subjectType: 'mentor',
+		value: 10,
+	});
+
+	Shri.pushPriority({
+		subjectId: 2,
+		subjectType: 'mentor',
+		value: 7,
+	});
+
+	// mentorId 3
+	Shri.pushPriority({
+		subjectId: 3,
+		subjectType: 'mentor',
+		value: 10,
+	});
+
+	Shri.pushPriority({
+		subjectId: 3,
+		subjectType: 'mentor',
+		value: 2,
+	});
+
+	Shri.pushPriority({
+		subjectId: 3,
+		subjectType: 'mentor',
+		value: 5,
+	});
+
+	Shri.pushPriority({
+		subjectId: 3,
+		subjectType: 'mentor',
+		value: 9,
+	});
+
+	Shri.pushPriority({
+		subjectId: 3,
+		subjectType: 'mentor',
+		value: 1,
+	});
+
+	t.ok(Shri.distributePriorities());
+
+	// weightsTable: [
+	// 	{ studentId: 2, mentorId: 3, value: 5 },
+	// 	{ studentId: 10, mentorId: 3, value: 5 },
+	// 	{ studentId: 1, mentorId: 2, value: 5 },
+	// 	{ studentId: 5, mentorId: 3, value: 4 },
+	// 	{ studentId: 6, mentorId: 1, value: 4 },
+	// 	{ studentId: 7, mentorId: 2, value: 4 },
+	// 	{ studentId: 3, mentorId: 2, value: 3 },
+	// 	{ studentId: 10, mentorId: 2, value: 3 },
+	// 	{ studentId: 10, mentorId: 1, value: 3 },
+	// 	{ studentId: 1, mentorId: 3, value: 3 },
+	// 	{ studentId: 1, mentorId: 1, value: 2 },
+	// 	{ mentorId: 1, studentId: 7, value: 2 },
+	// 	{ studentId: 3, mentorId: 1, value: 2 },
+	// 	{ mentorId: 2, studentId: 4, value: 2 },
+	// 	{ studentId: 9, mentorId: 3, value: 2 },
+	// 	{ mentorId: 1, studentId: 4, value: 1 },
+	// 	{ mentorId: 3, studentId: 7, value: 1 },
+	// 	{ mentorId: 2, studentId: 2, value: 0 },
+	// 	{ mentorId: 1, studentId: 5, value: 0 },
+	// 	{ mentorId: 2, studentId: 9, value: 0 },
+	// 	{ mentorId: 1, studentId: 9, value: 0 },
+	// 	{ mentorId: 1, studentId: 8, value: 0 },
+	// 	{ mentorId: 2, studentId: 5, value: 0 },
+	// 	{ mentorId: 2, studentId: 8, value: 0 },
+	// 	{ mentorId: 1, studentId: 2, value: 0 },
+	// 	{ mentorId: 3, studentId: 3, value: 0 },
+	// 	{ mentorId: 3, studentId: 4, value: 0 },
+	// 	{ mentorId: 3, studentId: 6, value: 0 },
+	// 	{ mentorId: 2, studentId: 6, value: 0 },
+	// 	{ mentorId: 3, studentId: 8, value: 0 }
+	// ]
+
+	t.equals(Shri.getStudent(1).mentor, 2);
+	t.equals(Shri.getStudent(2).mentor, 3);
+	t.equals(Shri.getStudent(3).mentor, 2);
+	t.equals(Shri.getStudent(4).mentor, 2); // исчерпано максимальное кол-во студентов на ментора
+	t.equals(Shri.getStudent(5).mentor, 3);
+	t.equals(Shri.getStudent(6).mentor, 1);
+	t.equals(Shri.getStudent(7).mentor, 2); // т. к. есть 10 % 3 = 1 доп. студент, разрешаем распределить его к этому ментору
+	t.equals(Shri.getStudent(8).mentor, 1);
+	t.equals(Shri.getStudent(9).mentor, 3);
+	t.equals(Shri.getStudent(10).mentor, 1);
 
 	t.end();
 });
